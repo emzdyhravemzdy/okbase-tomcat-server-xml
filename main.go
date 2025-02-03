@@ -12,6 +12,56 @@ import (
 )
 
 func main() {
+	//<Connector port="8088" protocol="HTTP/1.1"
+	//               connectionTimeout="20000"
+	//               redirectPort="443" />
+	//
+	// <Connector protocol="org.apache.coyote.http11.Http11AprProtocol"
+	//               port="8443" SSLEnabled="true" secure="true" scheme="https"
+	//               SSLProtocol="TLSv1.2+TLSv1.3"
+	//               SSLCipherSuite="ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
+	//               SSLHonorCipherOrder="true" SSLDisableCompression="true"
+	//               SSLCertificateFile="${catalina.home}/conf/certificate.crt"
+	//               SSLCertificateKeyFile="${catalina.home}/conf/private.key"
+	//               SSLCertificateChainFile="${catalina.home}/conf/ca.crt"
+	//               SSLPassword=""
+	//               disableUploadTimeout="true"
+	//               maxThreads="200" acceptCount="100"
+	//               maxHttpHeaderSize="49152"/>
+	//
+	//<!-- PFX -->
+	//    <Connector port="8443" protocol="org.apache.coyote.http11.Http11AprProtocol"
+	//               maxThreads="150" SSLEnabled="true">
+	//        <UpgradeProtocol className="org.apache.coyote.http2.Http2Protocol" />
+	//        <SSLHostConfig protocols="TLSv1.2,TLSv1.3" ciphers="ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256" >
+	//            <Certificate certificateKeystoreFile="${catalina.home}/conf/certificate.pfx"
+	//                         certificateKeystorePassword="tomcat"
+	//                         certificateKeystoreType="PKCS12"
+	//            />
+	//     </SSLHostConfig>
+	//  </Connector>
+	//
+	//      <Host name="localhost"  appBase="webapps"
+	//            unpackWARs="true" autoDeploy="false">
+	//
+	// <Valve className="org.apache.catalina.valves.ErrorReportValve" showReport="false" showServerInfo="false" />
+	//
+	//<!--   TOHLE ODKOMENTOVAT POKUD TO BEZI ZA PROXY
+	//        <Valve className="org.apache.catalina.valves.RemoteIpValve"
+	//        internalProxies="192\.168\.250\.64"
+	//        remoteIpHeader="x-forwarded-for"
+	//        proxiesHeader="x-forwarded-by"
+	//        protocolHeader="x-forwarded-proto"/>
+	//
+	//        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
+	//        prefix="localhost_access_log" suffix=".txt"
+	//        pattern="%{org.apache.catalina.AccessLog.RemoteAddr}r %h %l %u %t &quot;%r&quot; %s %b" resolveHosts="false"/>
+	//-->
+	//
+	//<!--  TOHLE ZAKOMENTOVAT POKUD TO BEZI ZA PROXY  -->
+	//        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
+	//        prefix="localhost_access_log" suffix=".txt"
+	//        pattern="%h %l %u %t &quot;%r&quot; %s %b" />
 	if len(os.Args) != 3 {
 		log.Fatal(errors.New("insufficient number of arguments (input file and output file)"))
 		return
@@ -112,6 +162,15 @@ func main() {
 		Service               service               `xml:"Service"`
 	}
 
+	type okbaseServer struct {
+		XMLName               xml.Name              `xml:"Server"`
+		Port                  string                `xml:"port,attr"`
+		Shutdown              string                `xml:"shutdown,attr"`
+		Listeners             []listener            `xml:"Listener"`
+		GlobalNamingResources globalNamingResources `xml:"GlobalNamingResources"`
+		Service               service               `xml:"Service"`
+	}
+
 	var xmlReadFile *os.File = nil
 	var err error = nil
 
@@ -147,6 +206,45 @@ func main() {
 		log.Fatal(err)
 		return
 	}
+	//<Connector port="8088" protocol="HTTP/1.1"
+	//               connectionTimeout="20000"
+	//               redirectPort="443" />
+	//
+	var serverOkbaseXml = okbaseServer{
+		XMLName:               serverXml.XMLName,
+		Port:                  serverXml.Port,
+		Shutdown:              serverXml.Shutdown,
+		Listeners:             serverXml.Listeners,
+		GlobalNamingResources: serverXml.GlobalNamingResources,
+		Service: service{
+			XMLName: serverXml.Service.XMLName,
+			Name:    serverXml.Service.Name,
+			Connector: connector{
+				XMLName:           serverXml.Service.Connector.XMLName,
+				Port:              "8080",
+				Protocol:          "HTTP/1.1",
+				ConnectionTimeout: "20000",
+				RedirectPort:      "443",
+				MaxParameterCount: serverXml.Service.Connector.MaxParameterCount,
+			},
+			Engine: engine{
+				XMLName:     serverXml.Service.Engine.XMLName,
+				Name:        serverXml.Service.Engine.Name,
+				DefaultHost: serverXml.Service.Engine.DefaultHost,
+				Realm:       serverXml.Service.Engine.Realm,
+				//      <Host name=""  appBase=""
+				//            unpackWARs="" autoDeploy="false">
+				Host: host{
+					XMLName:    serverXml.Service.Engine.Host.XMLName,
+					Name:       "localhost",
+					AppBase:    "webapps",
+					UnpackWARs: true,
+					AutoDeploy: false,
+					Valve:      serverXml.Service.Engine.Host.Valve,
+				},
+			},
+		},
+	}
 
 	fmt.Println("Successfully Unmarshaled server.xml")
 	var xmlWriteFile *os.File = nil
@@ -160,7 +258,7 @@ func main() {
 		return
 	}
 	var xmlWriteBytes []byte = nil
-	xmlWriteBytes, err = xml.MarshalIndent(&serverXml, "", "  ")
+	xmlWriteBytes, err = xml.MarshalIndent(&serverOkbaseXml, "", "  ")
 
 	fmt.Println("Successfully Marshaled output server.xml")
 	var regex *regexp.Regexp = nil
