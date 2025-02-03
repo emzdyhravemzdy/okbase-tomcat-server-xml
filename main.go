@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -11,6 +12,14 @@ import (
 )
 
 func main() {
+	if len(os.Args) != 3 {
+		log.Fatal(errors.New("insufficient number of arguments (input file and output file)"))
+		return
+
+	}
+	fileInputPath := os.Args[1]
+	fileOutputPath := os.Args[2]
+
 	//<Resource name="UserDatabase" auth="Container"
 	//              type="org.apache.catalina.UserDatabase"
 	//              description="User database that can be updated and saved"
@@ -107,10 +116,11 @@ func main() {
 	var err error = nil
 
 	// Open our xmlFile
-	xmlReadFile, err = os.Open(os.Args[1])
+	xmlReadFile, err = os.Open(fileInputPath)
 	// if we os.Open returns an error then handle it
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
+		return
 	}
 
 	fmt.Println("Successfully Opened server.xml")
@@ -140,8 +150,7 @@ func main() {
 
 	fmt.Println("Successfully Unmarshaled server.xml")
 	var xmlWriteFile *os.File = nil
-	filePath := os.Args[2]
-	xmlWriteFile, err = os.Create(filePath)
+	xmlWriteFile, err = os.Create(fileOutputPath)
 	if err != nil {
 		log.Fatal(err)
 		return
