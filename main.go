@@ -130,6 +130,7 @@ func main() {
 		return
 	}
 
+	fmt.Println("Successfully Read server.xml")
 	var serverXml server
 
 	if err = xml.Unmarshal(xmlReadBytes, &serverXml); err != nil {
@@ -137,6 +138,7 @@ func main() {
 		return
 	}
 
+	fmt.Println("Successfully Unmarshaled server.xml")
 	var xmlWriteFile *os.File = nil
 	filePath := os.Args[2]
 	xmlWriteFile, err = os.Create(filePath)
@@ -151,6 +153,7 @@ func main() {
 	var xmlWriteBytes []byte = nil
 	xmlWriteBytes, err = xml.MarshalIndent(&serverXml, "", "  ")
 
+	fmt.Println("Successfully Marshaled output server.xml")
 	var regex *regexp.Regexp = nil
 	if regex, err = regexp.Compile(`></[A-Za-z0-9_]+>`); err != nil {
 		log.Fatal(err)
@@ -171,11 +174,13 @@ func main() {
 		xmlString = strings.Replace(xmlString, k, v, -1)
 	}
 
+	fmt.Println("Successfully Formated output server.xml")
 	if _, err = xmlWriteFile.WriteString(xmlString); err != nil {
 		log.Fatal(err)
 		return
 	}
 
+	fmt.Println("Successfully Written output server.xml")
 	if err = xmlWriteFile.Close(); err != nil {
 		log.Fatal(err)
 		return
