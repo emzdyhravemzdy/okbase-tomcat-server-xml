@@ -223,14 +223,22 @@ func main() {
 		XMLName   xml.Name `xml:"Valve"`
 		ClassName string   `xml:"className,attr"`
 	}
-	type valveNoProxy struct {
+	type valveLogsNoProxy struct {
 		Valve
 		Directory string `xml:"directory,attr"`
 		Prefix    string `xml:"prefix,attr"`
 		Suffix    string `xml:"suffix,attr"`
 		Pattern   string `xml:"pattern,attr"`
 	}
-	type valveProxy struct {
+	type valveLogs struct {
+		Valve
+		Directory    string `xml:"directory,attr"`
+		Prefix       string `xml:"prefix,attr"`
+		Suffix       string `xml:"suffix,attr"`
+		Pattern      string `xml:"pattern,attr"`
+		ResolveHosts bool   `xml:"resolveHosts,attr"`
+	}
+	type valveRemote struct {
 		Valve
 		InternalProxies string `xml:"internalProxies,attr"`
 		RemoteIpHeader  string `xml:"remoteIpHeader,attr"`
@@ -239,12 +247,12 @@ func main() {
 	}
 	//<Host name="localhost"  appBase="webapps" unpackWARs="true" autoDeploy="true">
 	type host struct {
-		XMLName    xml.Name     `xml:"Host"`
-		Name       string       `xml:"name,attr"`
-		AppBase    string       `xml:"appBase,attr"`
-		UnpackWARs bool         `xml:"unpackWARs,attr"`
-		AutoDeploy bool         `xml:"autoDeploy,attr"`
-		Valve      valveNoProxy `xml:"Valve"`
+		XMLName    xml.Name         `xml:"Host"`
+		Name       string           `xml:"name,attr"`
+		AppBase    string           `xml:"appBase,attr"`
+		UnpackWARs bool             `xml:"unpackWARs,attr"`
+		AutoDeploy bool             `xml:"autoDeploy,attr"`
+		Valve      valveLogsNoProxy `xml:"Valve"`
 	}
 	type hostOkbase struct {
 		XMLName    xml.Name `xml:"Host"`
@@ -357,7 +365,7 @@ func main() {
 	connector1.ConnectionTimeout = "20000"
 	connector1.RedirectPort = "443"
 
-	var connectors []any = []any{
+	var connectors = []any{
 		connector1,
 		connectorSsl{
 			Connector: Connector{
@@ -403,28 +411,30 @@ func main() {
 	}
 	var valves []any
 	if proxySettings {
-		valves = append(valves, valveNoProxy{
-			Valve: Valve{
-				XMLName:   serverXml.Service.Engine.Host.Valve.XMLName,
-				ClassName: "org.apache.catalina.valves.AccessLogValve",
-			},
-			Directory: "logs",
-			Prefix:    "localhost_access_log",
-			Suffix:    ".txt",
-			Pattern:   "%h %l %u %t &quot;%r&quot; %s %b",
-		})
+		valves = append(valves,
+			valveLogsNoProxy{
+				Valve: Valve{
+					XMLName:   serverXml.Service.Engine.Host.Valve.XMLName,
+					ClassName: "org.apache.catalina.valves.AccessLogValve",
+				},
+				Directory: "logs",
+				Prefix:    "localhost_access_log",
+				Suffix:    ".txt",
+				Pattern:   "%h %l %u %t &quot;%r&quot; %s %b",
+			})
 	} else {
-		valves = append(valves, valveProxy{
-			Valve: Valve{
-				XMLName:   serverXml.Service.Engine.Host.Valve.XMLName,
-				ClassName: "org.apache.catalina.valves.RemoteIpValve",
+		valves = append(valves,
+			valveRemote{
+				Valve: Valve{
+					XMLName:   serverXml.Service.Engine.Host.Valve.XMLName,
+					ClassName: "org.apache.catalina.valves.RemoteIpValve",
+				},
+				InternalProxies: "192.168.250.64",
+				RemoteIpHeader:  "x-forwarded-for",
+				ProxiesHeader:   "x-forwarded-by",
+				ProtocolHeader:  "x-forwarded-proto",
 			},
-			InternalProxies: "192.168.250.64",
-			RemoteIpHeader:  "x-forwarded-for",
-			ProxiesHeader:   "x-forwarded-by",
-			ProtocolHeader:  "x-forwarded-proto",
-		},
-			valveNoProxy{
+			valveLogs{
 				Valve: Valve{
 					XMLName:   serverXml.Service.Engine.Host.Valve.XMLName,
 					ClassName: "org.apache.catalina.valves.AccessLogValve",
